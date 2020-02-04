@@ -18,8 +18,6 @@ import (
   "time"
 )
 
-var baseUrl = "https://api.bitvavo.com/v2"
-var socketBase = "wss://ws.bitvavo.com/v2/"
 var rateLimitRemaining = 1000
 var rateLimitReset = 0
 
@@ -54,16 +52,17 @@ type AssetsResponse struct {
 }
 
 type Assets struct {
-  Symbol               string `json:"symbol"`
-  Name                 string `json:"name"`
-  Decimals             int    `json:"decimals"`
-  DepositFee           string `json:"depositFee"`
-  DepositConfirmations int    `json:"depositConfirmations"`
-  DepositStatus        string `json:"depositStatus"`
-  WithdrawalFee        string `json:"withdrawalFee"`
-  WithdrawalMinAmount  string `json:"withdrawalMinAmount"`
-  WithdrawalStatus     string `json:"withdrawalStatus"`
-  Message              string `json:"message"`
+  Symbol               string   `json:"symbol"`
+  Name                 string   `json:"name"`
+  Decimals             int      `json:"decimals"`
+  DepositFee           string   `json:"depositFee"`
+  DepositConfirmations int      `json:"depositConfirmations"`
+  DepositStatus        string   `json:"depositStatus"`
+  WithdrawalFee        string   `json:"withdrawalFee"`
+  WithdrawalMinAmount  string   `json:"withdrawalMinAmount"`
+  WithdrawalStatus     string   `json:"withdrawalStatus"`
+  Networks             []string `json:"networks"`
+  Message              string   `json:"message"`
 }
 
 type BookResponse struct {
@@ -452,6 +451,8 @@ type CustomError struct {
 
 type Bitvavo struct {
   ApiKey, ApiSecret string
+  RestUrl           string
+  WsUrl             string
   AccessWindow      int
   WS                Websocket
   reconnectTimer    int
@@ -460,11 +461,13 @@ type Bitvavo struct {
 
 type Websocket struct {
   ApiKey                   string
+  WsUrl                    string
   Debugging                bool
   BookLock                 sync.Mutex
   sendLock                 sync.Mutex
   conn                     *websocket.Conn
   localBook                LocalBook
+  reconnectOnError         bool
   authenticated            bool
   authenticationFailed     bool
   keepLocalBook            bool
@@ -521,6 +524,7 @@ func (bitvavo Bitvavo) NewWebsocket() (*Websocket, chan MyError) {
   ws.Debugging = bitvavo.Debugging
   ws.ApiKey = bitvavo.ApiKey
   ws.conn = bitvavo.InitWS()
+  ws.reconnectOnError = true
   ws.authenticated = false
   ws.authenticationFailed = false
   ws.keepLocalBook = false
@@ -554,7 +558,7 @@ func (bitvavo Bitvavo) sendPublic(endpoint string) []byte {
   if bitvavo.ApiKey != "" {
     millis := time.Now().UnixNano() / 1000000
     timeString := strconv.FormatInt(millis, 10)
-    sig := bitvavo.createSignature(timeString, "GET", strings.Replace(endpoint, baseUrl, "", 1), map[string]string{}, bitvavo.ApiSecret)
+    sig := bitvavo.createSignature(timeString, "GET", strings.Replace(endpoint, bitvavo.RestUrl, "", 1), map[string]string{}, bitvavo.ApiSecret)
     req.Header.Set("Bitvavo-Access-Key", bitvavo.ApiKey)
     req.Header.Set("Bitvavo-Access-Signature", sig)
     req.Header.Set("Bitvavo-Access-Timestamp", timeString)
@@ -581,7 +585,7 @@ func (bitvavo Bitvavo) sendPrivate(endpoint string, postfix string, body map[str
   millis := time.Now().UnixNano() / 1000000
   timeString := strconv.FormatInt(millis, 10)
   sig := bitvavo.createSignature(timeString, method, (endpoint + postfix), body, bitvavo.ApiSecret)
-  url := baseUrl + endpoint + postfix
+  url := bitvavo.RestUrl + endpoint + postfix
   client := &http.Client{}
   byteBody := []byte{}
   if len(body) != 0 {
@@ -668,7 +672,7 @@ func handleAPIError(jsonResponse []byte) error {
 }
 
 func (bitvavo Bitvavo) Time() (Time, error) {
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/time")
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/time")
   var t Time
 
   err := json.Unmarshal(jsonResponse, &t)
@@ -684,7 +688,7 @@ func (bitvavo Bitvavo) Time() (Time, error) {
 // options: market
 func (bitvavo Bitvavo) Markets(options map[string]string) ([]Markets, error) {
   postfix := bitvavo.createPostfix(options)
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/markets" + postfix)
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/markets" + postfix)
   t := make([]Markets, 0)
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
@@ -696,7 +700,7 @@ func (bitvavo Bitvavo) Markets(options map[string]string) ([]Markets, error) {
 // options: symbol
 func (bitvavo Bitvavo) Assets(options map[string]string) ([]Assets, error) {
   postfix := bitvavo.createPostfix(options)
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/assets" + postfix)
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/assets" + postfix)
   t := make([]Assets, 0)
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
@@ -708,7 +712,7 @@ func (bitvavo Bitvavo) Assets(options map[string]string) ([]Assets, error) {
 // options: depth
 func (bitvavo Bitvavo) Book(symbol string, options map[string]string) (Book, error) {
   postfix := bitvavo.createPostfix(options)
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/" + symbol + "/book" + postfix)
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/" + symbol + "/book" + postfix)
   var t Book
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
@@ -723,7 +727,7 @@ func (bitvavo Bitvavo) Book(symbol string, options map[string]string) (Book, err
 // options: limit, start, end, tradeIdFrom, tradeIdTo
 func (bitvavo Bitvavo) PublicTrades(symbol string, options map[string]string) ([]PublicTrades, error) {
   postfix := bitvavo.createPostfix(options)
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/" + symbol + "/trades" + postfix)
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/" + symbol + "/trades" + postfix)
   t := make([]PublicTrades, 0)
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
@@ -736,7 +740,7 @@ func (bitvavo Bitvavo) PublicTrades(symbol string, options map[string]string) ([
 func (bitvavo Bitvavo) Candles(symbol string, interval string, options map[string]string) ([]Candle, error) {
   options["interval"] = interval
   postfix := bitvavo.createPostfix(options)
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/" + symbol + "/candles" + postfix)
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/" + symbol + "/candles" + postfix)
   var t []interface{}
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
@@ -753,7 +757,7 @@ func (bitvavo Bitvavo) Candles(symbol string, interval string, options map[strin
 // options: market
 func (bitvavo Bitvavo) TickerPrice(options map[string]string) ([]TickerPrice, error) {
   postfix := bitvavo.createPostfix(options)
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/ticker/price" + postfix)
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/ticker/price" + postfix)
   t := make([]TickerPrice, 0)
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
@@ -773,7 +777,7 @@ func (bitvavo Bitvavo) TickerPrice(options map[string]string) ([]TickerPrice, er
 // options: market
 func (bitvavo Bitvavo) TickerBook(options map[string]string) ([]TickerBook, error) {
   postfix := bitvavo.createPostfix(options)
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/ticker/book" + postfix)
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/ticker/book" + postfix)
   t := make([]TickerBook, 0)
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
@@ -793,7 +797,7 @@ func (bitvavo Bitvavo) TickerBook(options map[string]string) ([]TickerBook, erro
 // options: market
 func (bitvavo Bitvavo) Ticker24h(options map[string]string) ([]Ticker24h, error) {
   postfix := bitvavo.createPostfix(options)
-  jsonResponse := bitvavo.sendPublic(baseUrl + "/ticker/24h" + postfix)
+  jsonResponse := bitvavo.sendPublic(bitvavo.RestUrl + "/ticker/24h" + postfix)
   t := make([]Ticker24h, 0)
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
@@ -1128,8 +1132,10 @@ func (bitvavo Bitvavo) handleMessage(ws *Websocket) {
     bitvavo.reconnectTimer = 100
     _, message, err := ws.conn.ReadMessage()
     if handleError(err) {
-      err = ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-      bitvavo.reconnect(ws)
+      if (ws.reconnectOnError) {
+        err = ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+        bitvavo.reconnect(ws)
+      }
       return
     }
     bitvavo.DebugToConsole("FULL RESPONSE: " + string(message))
@@ -1403,7 +1409,7 @@ func (bitvavo Bitvavo) handleMessage(ws *Websocket) {
 
 func (bitvavo Bitvavo) InitWS() *websocket.Conn {
   bitvavo.reconnectTimer = 100
-  uri, _ := url.Parse(socketBase)
+  uri, _ := url.Parse(bitvavo.WsUrl)
   c, _, err := websocket.DefaultDialer.Dial(uri.String(), nil)
   if err != nil {
     errorToConsole("Caught error " + err.Error())
@@ -1426,7 +1432,7 @@ func (bitvavo Bitvavo) retryReconnect() *websocket.Conn {
   time.Sleep(time.Duration(bitvavo.reconnectTimer) * time.Millisecond)
   bitvavo.reconnectTimer = bitvavo.reconnectTimer * 2
   bitvavo.DebugToConsole("We waited for " + strconv.Itoa(bitvavo.reconnectTimer) + " seconds to reconnect")
-  uri, _ := url.Parse(socketBase)
+  uri, _ := url.Parse(bitvavo.WsUrl)
   c, _, err := websocket.DefaultDialer.Dial(uri.String(), nil)
   if err != nil {
     errorToConsole("Caught error " + err.Error())
@@ -1434,6 +1440,11 @@ func (bitvavo Bitvavo) retryReconnect() *websocket.Conn {
     return c
   }
   return c
+}
+
+func (ws *Websocket) Close() {
+  ws.reconnectOnError = false
+  ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 }
 
 func (ws *Websocket) Time() chan Time {

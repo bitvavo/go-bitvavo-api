@@ -1,6 +1,8 @@
 <p align="center">
-  <a href="https://bitvavo.com"><img src="https://bitvavo.com/media/images/logo/bitvavoGeneral.svg" width="600" title="Bitvavo Logo"></a>
+  <br>
+  <a href="https://bitvavo.com"><img src="https://bitvavo.com/assets/static/ext/logo-shape.svg" width="100" title="Bitvavo Logo">
 </p>
+
 
 # Go Bitvavo API
 This is the Go wrapper for the Bitvavo API. This project can be used to build your own projects which interact with the Bitvavo platform. Every function available on the API can be called through a REST request or over websockets. For info on the specifics of every parameter consult the [Bitvavo API documentation](https://docs.bitvavo.com/)
@@ -238,6 +240,9 @@ if err != nil {
   "withdrawalFee": "0.2",
   "withdrawalMinAmount": "0.2",
   "withdrawalStatus": "OK",
+  "networks": [
+    "Mainnet"
+  ],
   "message": ""
 }
 {
@@ -250,6 +255,9 @@ if err != nil {
   "withdrawalFee": "2",
   "withdrawalMinAmount": "2",
   "withdrawalStatus": "OK",
+  "networks": [
+    "Mainnet"
+  ],
   "message": ""
 }
 {
@@ -262,6 +270,9 @@ if err != nil {
   "withdrawalFee": "3",
   "withdrawalMinAmount": "3",
   "withdrawalStatus": "",
+  "networks": [
+    "Mainnet"
+  ],
   "message": ""
 }
 {
@@ -274,6 +285,9 @@ if err != nil {
   "withdrawalFee": "2",
   "withdrawalMinAmount": "2",
   "withdrawalStatus": "OK",
+  "networks": [
+    "Mainnet"
+  ],
   "message": ""
 }
  ...
@@ -285,16 +299,17 @@ if err != nil {
 
 ```go
 type Assets struct {
-  Symbol               string `json:"symbol"`
-  Name                 string `json:"name"`
-  Decimals             int    `json:"decimals"`
-  DepositFee           string `json:"depositFee"`
-  DepositConfirmations int    `json:"depositConfirmations"`
-  DepositStatus        string `json:"depositStatus"`
-  WithdrawalFee        string `json:"withdrawalFee"`
-  WithdrawalMinAmount  string `json:"withdrawalMinAmount"`
-  WithdrawalStatus     string `json:"withdrawalStatus"`
-  Message              string `json:"message"`
+  Symbol               string   `json:"symbol"`
+  Name                 string   `json:"name"`
+  Decimals             int      `json:"decimals"`
+  DepositFee           string   `json:"depositFee"`
+  DepositConfirmations int      `json:"depositConfirmations"`
+  DepositStatus        string   `json:"depositStatus"`
+  WithdrawalFee        string   `json:"withdrawalFee"`
+  WithdrawalMinAmount  string   `json:"withdrawalMinAmount"`
+  WithdrawalStatus     string   `json:"withdrawalStatus"`
+  Networks             []string `json:"networks"`
+  Message              string   `json:"message"`
 }
 ```
 </details>
@@ -1929,6 +1944,9 @@ for {
   "withdrawalFee": "0.2",
   "withdrawalMinAmount": "0.2",
   "withdrawalStatus": "OK",
+  "networks": [
+    "Mainnet"
+  ],
   "message": ""
 }
 {
@@ -1941,6 +1959,9 @@ for {
   "withdrawalFee": "2",
   "withdrawalMinAmount": "2",
   "withdrawalStatus": "OK",
+  "networks": [
+    "Mainnet"
+  ],
   "message": ""
 }
 {
@@ -1953,6 +1974,9 @@ for {
   "withdrawalFee": "3",
   "withdrawalMinAmount": "3",
   "withdrawalStatus": "",
+  "networks": [
+    "Mainnet"
+  ],
   "message": ""
 }
 {
@@ -1965,6 +1989,9 @@ for {
   "withdrawalFee": "2",
   "withdrawalMinAmount": "2",
   "withdrawalStatus": "OK",
+  "networks": [
+    "Mainnet"
+  ],
   "message": ""
 }
  ...
@@ -1976,16 +2003,17 @@ for {
 
 ```go
 type Assets struct {
-  Symbol               string `json:"symbol"`
-  Name                 string `json:"name"`
-  Decimals             int    `json:"decimals"`
-  DepositFee           string `json:"depositFee"`
-  DepositConfirmations int    `json:"depositConfirmations"`
-  DepositStatus        string `json:"depositStatus"`
-  WithdrawalFee        string `json:"withdrawalFee"`
-  WithdrawalMinAmount  string `json:"withdrawalMinAmount"`
-  WithdrawalStatus     string `json:"withdrawalStatus"`
-  Message              string `json:"message"`
+  Symbol               string   `json:"symbol"`
+  Name                 string   `json:"name"`
+  Decimals             int      `json:"decimals"`
+  DepositFee           string   `json:"depositFee"`
+  DepositConfirmations int      `json:"depositConfirmations"`
+  DepositStatus        string   `json:"depositStatus"`
+  WithdrawalFee        string   `json:"withdrawalFee"`
+  WithdrawalMinAmount  string   `json:"withdrawalMinAmount"`
+  WithdrawalStatus     string   `json:"withdrawalStatus"`
+  Networks             []string `json:"networks"`
+  Message              string   `json:"message"`
 }
 ```
 </details>

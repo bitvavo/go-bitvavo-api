@@ -32,6 +32,8 @@ func main() {
   bitvavo := bitvavo.Bitvavo{
     ApiKey:       "<APIKEY>",
     ApiSecret:    "<APISECRET>",
+    RestUrl:      "https://api.bitvavo.com/v2",
+    WsUrl:        "wss://ws.bitvavo.com/v2/",
     AccessWindow: 10000,
     Debugging:    false}
 
@@ -269,6 +271,7 @@ func testWebsocket(bitvavo bitvavo.Bitvavo) {
   // subscriptionBookUpdateChannel := websocket.SubscriptionBookUpdate("BTC-EUR")
   // subscriptionBookChannel := websocket.SubscriptionBook("BTC-EUR", map[string]string{})
 
+  // Keeps program running
   for {
     select {
     case result := <-errChannel:
@@ -335,4 +338,7 @@ func testWebsocket(bitvavo bitvavo.Bitvavo) {
     //   PrettyPrint(result)
     }
   }
+
+  // Once close is called on the websocket, nothing will be received until bitvavo.NewWebsocket() is called again.
+  websocket.Close()
 }
