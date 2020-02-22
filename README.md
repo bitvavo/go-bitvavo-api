@@ -81,17 +81,18 @@ if err != nil {
 
 ### Getting started
 
-The API key and secret are required for private calls and optional for public calls. The access window and debugging parameter are optional for all calls. The access window is used to determine whether the request arrived within time, the value is specified in milliseconds. You can use the [time](https://github.com/bitvavo/go-bitvavo-api#get-time) function to synchronize your time to our server time if errors arise. Debugging should be set to true when you want to log additional information and full responses. Any parameter can be omitted, private functions will return an error when the api key and secret have not been set.
+The API key and secret are required for private calls and optional for public calls. The access window and debugging parameter are optional for all calls. The access window is used to determine whether the request arrived within time, the value is specified in milliseconds. You can use the [time](https://github.com/bitvavo/go-bitvavo-api#get-time) function to synchronize your time to our server time if errors arise. REST url and WS url can be used to set a different endpoint (for testing purposes). Debugging should be set to true when you want to log additional information and full responses. Any parameter can be omitted, private functions will return an error when the api key and secret have not been set.
 
 ```go
 import . "bitvavo"
 
-bitvavo := Bitvavo{
-    ApiKey: "<APIKEY>",
-    ApiSecret: "<APISECRET>",
-    AccessWindow: 10000,
-    Debugging: true
-  }
+bitvavo := bitvavo.Bitvavo{
+  ApiKey:       "<APIKEY>",
+  ApiSecret:    "<APISECRET>",
+  RestUrl:      "https://api.bitvavo.com/v2",
+  WsUrl:        "wss://ws.bitvavo.com/v2/",
+  AccessWindow: 10000,
+  Debugging:    false}
 ```
 
 ### General
