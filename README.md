@@ -28,6 +28,7 @@ This is the Go wrapper for the Bitvavo API. This project can be used to build yo
   * Cancel Orders       [REST](https://github.com/bitvavo/go-bitvavo-api#cancel-orders) [Websocket](https://github.com/bitvavo/go-bitvavo-api#cancel-orders-1)
   * Orders Open         [REST](https://github.com/bitvavo/go-bitvavo-api#get-orders-open) [Websocket](https://github.com/bitvavo/go-bitvavo-api#get-orders-open-1)
   * Trades              [REST](https://github.com/bitvavo/go-bitvavo-api#get-trades) [Websocket](https://github.com/bitvavo/go-bitvavo-api#get-trades-1)
+  * Account             [REST](https://github.com/bitvavo/go-bitvavo-api#get-account) [Websocket](https://github.com/bitvavo/go-bitvavo-api#get-account-1)
   * Balance             [REST](https://github.com/bitvavo/go-bitvavo-api#get-balance) [Websocket](https://github.com/bitvavo/go-bitvavo-api#get-balance-1)
   * Deposit Assets     [REST](https://github.com/bitvavo/go-bitvavo-api#deposit-assets) [Websocket](https://github.com/bitvavo/go-bitvavo-api#deposit-assets-1)
   * Withdraw Assets   [REST](https://github.com/bitvavo/go-bitvavo-api#withdraw-assets) [Websocket](https://github.com/bitvavo/go-bitvavo-api#withdraw-assets-1)
@@ -773,7 +774,9 @@ When placing an order, make sure that the correct optional parameters are set. F
 
 ```go
 // optional parameters: limit:(amount, price, postOnly), market:(amount, amountQuote, disableMarketProtection),
-// both: timeInForce, selfTradePrevention, responseRequired
+//                      stopLoss/takeProfit:(amount, amountQuote, disableMarketProtection, triggerType, triggerReference, triggerAmount)
+//                      stopLossLimit/takeProfitLimit:(amount, price, postOnly, triggerType, triggerReference, triggerAmount)
+//                      all orderTypes: timeInForce, selfTradePrevention, responseRequired
 response, err := bitvavo.PlaceOrder("BTC-EUR", "buy", "market", map[string]string{"amount": "0.3"})
 if err != nil {
   fmt.Println(err)
@@ -885,7 +888,8 @@ When updating an order make sure that at least one of the optional parameters ha
 
 ```go
 // Optional parameters: limit:(amount, amountRemaining, price, timeInForce, selfTradePrevention, postOnly)
-// (set at least 1) (responseRequired can be set as well, but does not update anything)
+//          untriggered stopLoss/takeProfit:(amount, amountQuote, disableMarketProtection, triggerType, triggerReference, triggerAmount)
+//                      stopLossLimit/takeProfitLimit: (amount, price, postOnly, triggerType, triggerReference, triggerAmount)
 response, err := bitvavo.UpdateOrder("BTC-EUR", "c2aa3b68-d72f-4a02-bb3d-30401f7d43ed",
                                       map[string]string{"price": "4000"})
 if err != nil {
@@ -1479,6 +1483,47 @@ type Trades struct {
   Fee         string `json:"fee"`
   FeeCurrency string `json:"feeCurrency"`
   Settled     bool   `json:"settled"`
+}
+```
+</details>
+
+#### Get Account
+Returns the fee tier for this account.
+
+```go
+accountResponse, accountErr := bitvavo.Account()
+if accountErr != nil {
+  fmt.Println(accountErr)
+} else {
+  PrettyPrint(accountResponse)
+}
+```
+<details>
+ <summary>View Response</summary>
+
+```go
+{
+  "fees": {
+    "taker": "0.0025",
+    "maker": "0.0015",
+    "volume": "100.00"
+  }
+}
+```
+</details>
+
+<details>
+ <summary>Struct Definition</summary>
+
+```go
+type Account struct {
+  Fees  FeeObject `json:"fees"`
+}
+
+type FeeObject struct {
+  Taker  string `json:"taker"`
+  Maker  string `json:"maker"`
+  Volume string `json:"volume"`
 }
 ```
 </details>
@@ -2498,7 +2543,9 @@ When placing an order, make sure that the correct optional parameters are set. F
 
 ```go
 // optional parameters: limit:(amount, price, postOnly), market:(amount, amountQuote, disableMarketProtection),
-// both: timeInForce, selfTradePrevention, responseRequired
+//                      stopLoss/takeProfit:(amount, amountQuote, disableMarketProtection, triggerType, triggerReference, triggerAmount)
+//                      stopLossLimit/takeProfitLimit:(amount, price, postOnly, triggerType, triggerReference, triggerAmount)
+//                      all orderTypes: timeInForce, selfTradePrevention, responseRequired
 channel := websocket.PlaceOrder("BTC-EUR", "sell", "market", map[string]string{"amount": "0.3"})
 
 for {
@@ -2614,7 +2661,8 @@ When updating an order make sure that at least one of the optional parameters ha
 
 ```go
 // Optional parameters: limit:(amount, amountRemaining, price, timeInForce, selfTradePrevention, postOnly)
-// (set at least 1) (responseRequired can be set as well, but does not update anything)
+//          untriggered stopLoss/takeProfit:(amount, amountQuote, disableMarketProtection, triggerType, triggerReference, triggerAmount)
+//                      stopLossLimit/takeProfitLimit: (amount, price, postOnly, triggerType, triggerReference, triggerAmount)
 channel := websocket.UpdateOrder("BTC-EUR", "4729e0c3-fb21-41cf-957c-4c406ea78b11", 
                                   map[string]string{"amount":"0.4"})
 
@@ -3235,6 +3283,51 @@ type Trades struct {
   Fee         string `json:"fee"`
   FeeCurrency string `json:"feeCurrency"`
   Settled     bool   `json:"settled"`
+}
+```
+</details>
+
+#### Get Account
+Returns the fee tier for this account.
+
+```go
+channel := websocket.Account()
+
+for {
+  select {
+    case errorMsg := <-errChannel:
+      fmt.Println("Handle error", errorMsg)
+    case result := <-channel:
+      fmt.Printf("%+v\n", result)
+  }
+}
+```
+<details>
+ <summary>View Response</summary>
+
+```go
+{
+  "fees": {
+    "taker": "0.0025",
+    "maker": "0.0015",
+    "volume": "100.00"
+  }
+}
+```
+</details>
+
+<details>
+ <summary>Struct Definition</summary>
+
+```go
+type Account struct {
+  Fees  FeeObject `json:"fees"`
+}
+
+type FeeObject struct {
+  Taker  string `json:"taker"`
+  Maker  string `json:"maker"`
+  Volume string `json:"volume"`
 }
 ```
 </details>

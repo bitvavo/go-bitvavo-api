@@ -181,6 +181,10 @@ type Order struct {
   DisableMarketProtection bool   `json:"disableMarketProtection"`
   TimeInForce             string `json:"timeInForce"`
   PostOnly                bool   `json:"postOnly"`
+  TriggerAmount           string `json:"triggerAmount"`
+  TriggerPrice            string `json:"triggerPrice"`
+  TriggerType             string `json:"triggerType"`
+  TriggerReference        string `json:"triggerReference"`
 }
 
 type Fill struct {
@@ -244,6 +248,21 @@ type Trades struct {
   Fee         string `json:"fee"`
   FeeCurrency string `json:"feeCurrency"`
   Settled     bool   `json:"settled"`
+}
+
+type AccountResponse struct {
+  Action   string  `json:"action"`
+  Response Account `json:"response"`
+}
+
+type Account struct {
+  Fees  FeeObject `json:"fees"`
+}
+
+type FeeObject struct {
+  Taker  string `json:"taker"`
+  Maker  string `json:"maker"`
+  Volume string `json:"volume"`
 }
 
 type BalanceResponse struct {
@@ -350,6 +369,10 @@ type SubscriptionAccountOrder struct {
   PostOnly             bool   `json:"postOnly"`
   SelfTradePrevention  string `json:"selfTradePrevention"`
   Visible              bool   `json:"visible"`
+  TriggerAmount        string `json:"triggerAmount"`
+  TriggerPrice         string `json:"triggerPrice"`
+  TriggerType          string `json:"triggerType"`
+  TriggerReference     string `json:"triggerReference"`
 }
 
 type SubscriptionCandlesResponse struct {
@@ -489,6 +512,7 @@ type Websocket struct {
   cancelOrdersChannel      chan []CancelOrder
   ordersOpenChannel        chan []Order
   tradesChannel            chan []Trades
+  accountChannel           chan Account
   balanceChannel           chan []Balance
   depositAssetsChannel     chan DepositAssets
   withdrawAssetsChannel    chan WithdrawAssets
@@ -814,7 +838,10 @@ func (bitvavo Bitvavo) Ticker24h(options map[string]string) ([]Ticker24h, error)
   return t, nil
 }
 
-// optional body parameters: limit:(amount, price, postOnly), market:(amount, amountQuote, disableMarketProtection), both: timeInForce, selfTradePrevention, responseRequired
+// optional body parameters: limit:(amount, price, postOnly), market:(amount, amountQuote, disableMarketProtection)
+//                           stopLoss/takeProfit:(amount, amountQuote, disableMarketProtection, triggerType, triggerReference, triggerAmount)
+//                           stopLossLimit/takeProfitLimit:(amount, price, postOnly, triggerType, triggerReference, triggerAmount)
+//                           all orderTypes: timeInForce, selfTradePrevention, responseRequired
 func (bitvavo Bitvavo) PlaceOrder(market string, side string, orderType string, body map[string]string) (Order, error) {
   body["market"] = market
   body["side"] = side
@@ -847,7 +874,8 @@ func (bitvavo Bitvavo) GetOrder(market string, orderId string) (Order, error) {
 }
 
 // Optional body parameters: limit:(amount, amountRemaining, price, timeInForce, selfTradePrevention, postOnly)
-// (set at least 1) (responseRequired can be set as well, but does not update anything)
+//               untriggered stopLoss/takeProfit:(amount, amountQuote, disableMarketProtection, triggerType, triggerReference, triggerAmount)
+//                           stopLossLimit/takeProfitLimit: (amount, price, postOnly, triggerType, triggerReference, triggerAmount)
 func (bitvavo Bitvavo) UpdateOrder(market string, orderId string, body map[string]string) (Order, error) {
   body["market"] = market
   body["orderId"] = orderId
@@ -924,6 +952,16 @@ func (bitvavo Bitvavo) Trades(market string, options map[string]string) ([]Trade
   err := json.Unmarshal(jsonResponse, &t)
   if err != nil {
     return []Trades{Trades{}}, handleAPIError(jsonResponse)
+  }
+  return t, nil
+}
+
+func (bitvavo Bitvavo) Account() (Account, error) {
+  jsonResponse := bitvavo.sendPrivate("/account", "", map[string]string{}, "GET")
+  var t Account
+  err := json.Unmarshal(jsonResponse, &t)
+  if err != nil {
+    return Account{}, MyError{Err: err}
   }
   return t, nil
 }
@@ -1367,6 +1405,13 @@ func (bitvavo Bitvavo) handleMessage(ws *Websocket) {
         return
       }
       ws.tradesChannel <- t.Response
+    } else if x["action"] == "privateGetAccount" {
+      var t AccountResponse
+      err = json.Unmarshal(message, &t)
+      if handleError(err) {
+        return
+      }
+      ws.accountChannel <- t.Response
     } else if x["action"] == "privateGetBalance" {
       var t BalanceResponse
       err = json.Unmarshal(message, &t)
@@ -1549,7 +1594,10 @@ func (ws *Websocket) sendPrivate(msg []byte) {
   }
 }
 
-// optional body parameters: limit:(amount, price, postOnly), market:(amount, amountQuote, disableMarketProtection), both: timeInForce, selfTradePrevention, responseRequired
+// optional body parameters: limit:(amount, price, postOnly), market:(amount, amountQuote, disableMarketProtection)
+//                           stopLoss/takeProfit:(amount, amountQuote, disableMarketProtection, triggerType, triggerReference, triggerAmount)
+//                           stopLossLimit/takeProfitLimit:(amount, price, postOnly, triggerType, triggerReference, triggerAmount)
+//                           all orderTypes: timeInForce, selfTradePrevention, responseRequired
 func (ws *Websocket) PlaceOrder(market string, side string, orderType string, body map[string]string) chan Order {
   body["market"] = market
   body["side"] = side
@@ -1570,7 +1618,8 @@ func (ws *Websocket) GetOrder(market string, orderId string) chan Order {
 }
 
 // Optional body parameters: limit:(amount, amountRemaining, price, timeInForce, selfTradePrevention, postOnly)
-// (set at least 1) (responseRequired can be set as well, but does not update anything)
+//               untriggered stopLoss/takeProfit:(amount, amountQuote, disableMarketProtection, triggerType, triggerReference, triggerAmount)
+//                           stopLossLimit/takeProfitLimit: (amount, price, postOnly, triggerType, triggerReference, triggerAmount)
 func (ws *Websocket) UpdateOrder(market string, orderId string, body map[string]string) chan Order {
   ws.updateOrderChannel = make(chan Order, 100)
   body["market"] = market
@@ -1624,6 +1673,14 @@ func (ws *Websocket) Trades(market string, options map[string]string) chan []Tra
   myMessage, _ := json.Marshal(options)
   go ws.sendPrivate(myMessage)
   return ws.tradesChannel
+}
+
+func (ws *Websocket) Account() chan Account {
+  ws.accountChannel = make(chan Account, 100)
+  options := map[string]string{"action": "privateGetAccount"}
+  myMessage, _ := json.Marshal(options)
+  go ws.sendPrivate(myMessage)
+  return ws.accountChannel
 }
 
 // options: symbol
