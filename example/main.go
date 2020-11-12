@@ -133,6 +133,17 @@ func testREST(bitvavo bitvavo.Bitvavo) {
   //   PrettyPrint(placeOrderResponse)
   // }
 
+  // placeOrderResponse, placeOrderErr := bitvavo.PlaceOrder(
+  //   "BTC-EUR",
+  //   "sell",
+  //   "stopLoss",
+  //   map[string]string{"amount": "0.1", "triggerType": "price", "triggerReference": "lastTrade", "triggerAmount": "5000"})
+  // if placeOrderErr != nil {
+  //   fmt.Println(placeOrderErr)
+  // } else {
+  //   PrettyPrint(placeOrderResponse)
+  // }
+
   // updateOrderResponse, updateOrderErr := bitvavo.UpdateOrder("BTC-EUR", "68c72b7a-2cf5-4516-8915-703a5d38c77e", map[string]string{"amount": "0.4"})
   // if updateOrderErr != nil {
   //   fmt.Println(updateOrderErr)
@@ -188,6 +199,13 @@ func testREST(bitvavo bitvavo.Bitvavo) {
   //   for _, trade := range tradesResponse {
   //     PrettyPrint(trade)
   //   }
+  // }
+
+  // accountResponse, accountErr := bitvavo.Account()
+  // if accountErr != nil {
+  //   fmt.Println(accountErr)
+  // } else {
+  //   PrettyPrint(accountResponse)
   // }
 
   // balanceResponse, balanceErr := bitvavo.Balance(map[string]string{})
@@ -257,6 +275,7 @@ func testWebsocket(bitvavo bitvavo.Bitvavo) {
 
   // tradesChannel := websocket.Trades("BTC-EUR", map[string]string{})
 
+  // accountChannel := websocket.Account()
   // balanceChannel := websocket.Balance(map[string]string{})
   // depositAssetsChannel := websocket.DepositAssets("BTC")
   // withdrawAssetsChannel := websocket.WithdrawAssets("EUR", "50", "NL123BIM", map[string]string{})
@@ -309,6 +328,8 @@ func testWebsocket(bitvavo bitvavo.Bitvavo) {
     // case result := <-ordersOpenChannel:
     //   PrettyPrint(result)
     // case result := <-tradesChannel:
+    //   PrettyPrint(result)
+    // case result := <-accountChannel:
     //   PrettyPrint(result)
     // case result := <-balanceChannel:
     //   PrettyPrint(result)
