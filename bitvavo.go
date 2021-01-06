@@ -653,7 +653,7 @@ func updateRateLimit(response http.Header) {
     if key == "Bitvavo-Ratelimit-Remaining" {
       rateLimitRemaining, _ = strconv.Atoi(value[0])
     }
-    if key == "Bitvavo-Ratelimit-Resetat" {
+    if key == "Bitvavo-Ratelimit-ResetAt" {
       rateLimitReset, _ = strconv.Atoi(value[0])
       now := int(time.Nanosecond * time.Duration(time.Now().UnixNano()) / time.Millisecond)
       var timeToWait = rateLimitReset - now
