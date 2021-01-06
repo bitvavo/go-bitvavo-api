@@ -27,7 +27,7 @@ type TimeResponse struct {
 }
 
 type Time struct {
-  Time int `json:"time"`
+  Time int64 `json:"time,string"`
 }
 
 type MarketsResponse struct {
