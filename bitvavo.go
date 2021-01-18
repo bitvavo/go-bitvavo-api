@@ -83,7 +83,7 @@ type PublicTradesResponse struct {
 }
 
 type PublicTrades struct {
-	Timestamp int    `json:"timestamp"`
+	Timestamp int64  `json:"timestamp"`
 	Id        string `json:"id"`
 	Amount    string `json:"amount"`
 	Price     string `json:"price"`
@@ -396,7 +396,7 @@ type PreCandle struct {
 
 type SubscriptionTrades struct {
 	Event     string `json:"event"`
-	Timestamp int    `json:"timestamp"`
+	Timestamp int64  `json:"timestamp"`
 	Market    string `json:"market"`
 	Id        string `json:"id"`
 	Amount    string `json:"amount"`
