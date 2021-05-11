@@ -1195,83 +1195,7 @@ func (bitvavo Bitvavo) handleMessage(ws *Websocket) {
       }
       ws.errChannel <- MyError{CustomError: t}
     }
-    if x["event"] == "authenticate" {
-      ws.authenticated = true
-    } else if x["event"] == "book" {
-      var t SubscriptionBookUpdate
-      err = json.Unmarshal(message, &t)
-      if handleError(err) {
-        return
-      }
-      market, _ := x["market"].(string)
-      if ws.subscriptionBookUpdateChannelMap[market] != nil {
-        ws.subscriptionBookUpdateChannelMap[market] <- t
-      }
-      if ws.keepLocalBook {
-        addToBook(t, ws)
-      }
-    } else if x["event"] == "trade" {
-      var t SubscriptionTrades
-      err = json.Unmarshal(message, &t)
-      if handleError(err) {
-        return
-      }
-      market, _ := x["market"].(string)
-      if ws.subscriptionTradesChannelMap[market] != nil {
-        ws.subscriptionTradesChannelMap[market] <- t
-      }
-    } else if x["event"] == "fill" {
-      var t SubscriptionAccountFill
-      err = json.Unmarshal(message, &t)
-      if handleError(err) {
-        return
-      }
-      market, _ := x["market"].(string)
-      if ws.subscriptionAccountFillChannelMap[market] != nil {
-        ws.subscriptionAccountFillChannelMap[market] <- t
-      }
-    } else if x["event"] == "order" {
-      var t SubscriptionAccountOrder
-      err = json.Unmarshal(message, &t)
-      if handleError(err) {
-        return
-      }
-      market, _ := x["market"].(string)
-      if ws.subscriptionAccountOrderChannelMap[market] != nil {
-        ws.subscriptionAccountOrderChannelMap[market] <- t
-      }
-    } else if x["event"] == "ticker" {
-      var t SubscriptionTicker
-      err = json.Unmarshal(message, &t)
-      if handleError(err) {
-        return
-      }
-      market, _ := x["market"].(string)
-      ws.subscriptionTickerChannelMap[market] <- t
-    } else if x["event"] == "ticker24h" {
-      var t SubscriptionTicker24h
-      err = json.Unmarshal(message, &t)
-      if handleError(err) {
-        return
-      }
-      for i := 0; i < len(t.Data); i++ {
-        ws.subscriptionTicker24hChannelMap[t.Data[i].Market] <- t.Data[i]
-      }
-    } else if x["event"] == "candle" {
-      var t PreCandle
-      err := json.Unmarshal(message, &t)
-      if err != nil {
-        return
-      }
-      var candles []Candle
-      for i := 0; i < len(t.Candle); i++ {
-        entry := reflect.ValueOf(t.Candle[i])
-        candles = append(candles, Candle{Timestamp: int(entry.Index(0).Interface().(float64)), Open: entry.Index(1).Interface().(string), High: entry.Index(2).Interface().(string), Low: entry.Index(3).Interface().(string), Close: entry.Index(4).Interface().(string), Volume: entry.Index(5).Interface().(string)})
-      }
-      market, _ := x["market"].(string)
-      interval, _ := x["interval"].(string)
-      ws.subscriptionCandlesChannelMap[market][interval] <- SubscriptionCandles{Event: t.Event, Market: t.Market, Interval: t.Interval, Candle: candles}
-    }
+    bitvavo.handleEvent(ws, x, message)
     if x["action"] == "getTime" {
       var t TimeResponse
       err = json.Unmarshal(message, &t)
@@ -1450,6 +1374,98 @@ func (bitvavo Bitvavo) handleMessage(ws *Websocket) {
     }
   }
   errorToConsole("HandleMessage has ended, messages will no longer be received, please restart.")
+}
+
+func (bitvavo Bitvavo) handleEvent(ws *Websocket, x map[string]interface{}, message []byte) {
+    var market string
+    if m, ok := x["market"]; ok {
+        market = m.(string)
+    }
+    if x["event"] == "authenticate" {
+        ws.authenticated = true
+    } else if x["event"] == "book" && ws.subscriptionBookUpdateChannelMap[market] != nil {
+        var t SubscriptionBookUpdate
+        err := json.Unmarshal(message, &t)
+        if handleError(err) {
+            return
+        }
+        select {
+        case ws.subscriptionBookUpdateChannelMap[market] <- t:
+        default:
+        }
+        if ws.keepLocalBook {
+            addToBook(t, ws)
+        }
+    } else if x["event"] == "trade" && ws.subscriptionTradesChannelMap[market] != nil {
+        var t SubscriptionTrades
+        err := json.Unmarshal(message, &t)
+        if handleError(err) {
+            return
+        }
+        select {
+        case ws.subscriptionTradesChannelMap[market] <- t:
+        default:
+        }
+    } else if x["event"] == "fill" && ws.subscriptionAccountFillChannelMap[market] != nil {
+        var t SubscriptionAccountFill
+        err := json.Unmarshal(message, &t)
+        if handleError(err) {
+            return
+        }
+        select {
+        case ws.subscriptionAccountFillChannelMap[market] <- t:
+        default:
+        }
+    } else if x["event"] == "order" && ws.subscriptionAccountOrderChannelMap[market] != nil {
+        var t SubscriptionAccountOrder
+        err := json.Unmarshal(message, &t)
+        if handleError(err) {
+            return
+        }
+        select {
+        case ws.subscriptionAccountOrderChannelMap[market] <- t:
+        default:
+        }
+    } else if x["event"] == "ticker" && ws.subscriptionTickerChannelMap[market] != nil {
+        var t SubscriptionTicker
+        err := json.Unmarshal(message, &t)
+        if handleError(err) {
+            return
+        }
+        select {
+        case ws.subscriptionTickerChannelMap[market] <- t:
+        default:
+        }
+    } else if x["event"] == "ticker24h" {
+        var t SubscriptionTicker24h
+        err := json.Unmarshal(message, &t)
+        if handleError(err) {
+            return
+        }
+        for i := 0; i < len(t.Data); i++ {
+            select {
+            case ws.subscriptionTicker24hChannelMap[t.Data[i].Market] <- t.Data[i]:
+            default:
+            }
+        }
+    } else if x["event"] == "candle" {
+        var t PreCandle
+        err := json.Unmarshal(message, &t)
+        if err != nil {
+            return
+        }
+        var candles []Candle
+        for i := 0; i < len(t.Candle); i++ {
+            entry := reflect.ValueOf(t.Candle[i])
+            candles = append(candles, Candle{Timestamp: int(entry.Index(0).Interface().(float64)), Open: entry.Index(1).Interface().(string), High: entry.Index(2).Interface().(string), Low: entry.Index(3).Interface().(string), Close: entry.Index(4).Interface().(string), Volume: entry.Index(5).Interface().(string)})
+        }
+        market, _ := x["market"].(string)
+        interval, _ := x["interval"].(string)
+        select {
+        case ws.subscriptionCandlesChannelMap[market][interval] <- SubscriptionCandles{Event: t.Event, Market: t.Market, Interval: t.Interval, Candle: candles}:
+        default:
+        }
+    }
 }
 
 func (bitvavo Bitvavo) InitWS() *websocket.Conn {
