@@ -1883,3 +1883,52 @@ func (ws *Websocket) SubscriptionBook(market string, options map[string]string) 
   ws.conn.WriteMessage(websocket.TextMessage, []byte(mySecondMessage))
   return ws.subscriptionBookChannelMap[market]
 }
+
+func (ws *Websocket) UnsubscribeTicker(market string) {
+    delete(ws.subscriptionTickerOptionsMap, market)
+    options := SubscriptionTickerObject{Action: "unsubscribe", Channels: []SubscriptionTickAccSubObject{SubscriptionTickAccSubObject{Name: "ticker", Markets: []string{market}}}}
+    myMessage, _ := json.Marshal(options)
+    ws.conn.WriteMessage(websocket.TextMessage, []byte(myMessage))
+}
+
+func (ws *Websocket) UnsubscribeTicker24h(market string) {
+    delete(ws.subscriptionTicker24hOptionsMap, market)
+    options := SubscriptionTickerObject{Action: "unsubscribe", Channels: []SubscriptionTickAccSubObject{SubscriptionTickAccSubObject{Name: "ticker24h", Markets: []string{market}}}}
+    myMessage, _ := json.Marshal(options)
+    ws.conn.WriteMessage(websocket.TextMessage, []byte(myMessage))
+}
+
+func (ws *Websocket) UnsubscribeAccount(market string) {
+    delete(ws.subscriptionAccountOptionsMap, market)
+    options := SubscriptionTickerObject{Action: "unsubscribe", Channels: []SubscriptionTickAccSubObject{SubscriptionTickAccSubObject{Name: "account", Markets: []string{market}}}}
+    myMessage, _ := json.Marshal(options)
+    ws.conn.WriteMessage(websocket.TextMessage, []byte(myMessage))
+}
+
+func (ws *Websocket) UnsubscribeCandles(market string, interval string) {
+    delete(ws.subscriptionCandlesOptionsMap, market)
+    options := SubscriptionCandlesObject{Action: "unsubscribe", Channels: []SubscriptionCandlesSubObject{SubscriptionCandlesSubObject{Name: "candles", Interval: []string{interval}, Markets: []string{market}}}}
+    myMessage, _ := json.Marshal(options)
+    ws.conn.WriteMessage(websocket.TextMessage, []byte(myMessage))
+}
+
+func (ws *Websocket) UnsubscribeTrades(market string) {
+    delete(ws.subscriptionTradesOptionsMap, market)
+    options := SubscriptionTradesBookObject{Action: "unsubscribe", Channels: []SubscriptionTradesBookSubObject{SubscriptionTradesBookSubObject{Name: "trades", Markets: []string{market}}}}
+    myMessage, _ := json.Marshal(options)
+    ws.conn.WriteMessage(websocket.TextMessage, []byte(myMessage))
+}
+
+func (ws *Websocket) UnsubscribeBookUpdate(market string) {
+    delete(ws.subscriptionBookUpdateOptionsMap, market)
+    options := SubscriptionTradesBookObject{Action: "unsubscribe", Channels: []SubscriptionTradesBookSubObject{SubscriptionTradesBookSubObject{Name: "book", Markets: []string{market}}}}
+    myMessage, _ := json.Marshal(options)
+    ws.conn.WriteMessage(websocket.TextMessage, []byte(myMessage))
+}
+
+func (ws *Websocket) UnsubscribeBook(market string) {
+    delete(ws.subscriptionBookOptionsSecondMap, market)
+    options := SubscriptionTradesBookObject{Action: "unsubscribe", Channels: []SubscriptionTradesBookSubObject{SubscriptionTradesBookSubObject{Name: "book", Markets: []string{market}}}}
+    myMessage, _ := json.Marshal(options)
+    ws.conn.WriteMessage(websocket.TextMessage, []byte(myMessage))
+}
