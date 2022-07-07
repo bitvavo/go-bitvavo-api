@@ -583,10 +583,10 @@ func (bitvavo Bitvavo) sendPublic(endpoint string) []byte {
     millis := time.Now().UnixNano() / 1000000
     timeString := strconv.FormatInt(millis, 10)
     sig := bitvavo.createSignature(timeString, "GET", strings.Replace(endpoint, bitvavo.RestUrl, "", 1), map[string]string{}, bitvavo.ApiSecret)
-    req.Header.Set("Bitvavo-Access-Key", bitvavo.ApiKey)
-    req.Header.Set("Bitvavo-Access-Signature", sig)
-    req.Header.Set("Bitvavo-Access-Timestamp", timeString)
-    req.Header.Set("Bitvavo-Access-Window", strconv.Itoa(bitvavo.AccessWindow))
+    req.Header.Set("bitvavo-access-key", bitvavo.ApiKey)
+    req.Header.Set("bitvavo-access-signature", sig)
+    req.Header.Set("bitvavo-access-timestamp", timeString)
+    req.Header.Set("bitvavo-access-window", strconv.Itoa(bitvavo.AccessWindow))
   }
   req.Header.Set("Content-Type", "application/json")
   resp, err := client.Do(req)
@@ -622,11 +622,11 @@ func (bitvavo Bitvavo) sendPrivate(endpoint string, postfix string, body map[str
     byteBody = nil
   }
   req, err := http.NewRequest(method, url, bytes.NewBuffer(byteBody))
-  req.Header.Set("Bitvavo-Access-Key", bitvavo.ApiKey)
-  req.Header.Set("Bitvavo-Access-Signature", sig)
-  req.Header.Set("Bitvavo-Access-Timestamp", timeString)
-  req.Header.Set("Bitvavo-Access-Window", strconv.Itoa(bitvavo.AccessWindow))
-  req.Header.Set("Content-Type", "application/json")
+  req.Header.Set("bitvavo-access-key", bitvavo.ApiKey)
+  req.Header.Set("bitvavo-access-signature", sig)
+  req.Header.Set("bitvavo-access-timestamp", timeString)
+  req.Header.Set("bitvavo-access-window", strconv.Itoa(bitvavo.AccessWindow))
+  req.Header.Set("content-type", "application/json")
   resp, err := client.Do(req)
   if err != nil {
     errorToConsole("We caught an error " + err.Error())
@@ -650,10 +650,10 @@ func checkLimit() {
 
 func updateRateLimit(response http.Header) {
   for key, value := range response {
-    if key == "Bitvavo-Ratelimit-Remaining" {
+    if key == "bitvavo-ratelimit-remaining" {
       rateLimitRemaining, _ = strconv.Atoi(value[0])
     }
-    if key == "Bitvavo-Ratelimit-Resetat" {
+    if key == "bitvavo-ratelimit-resetat" {
       rateLimitReset, _ = strconv.Atoi(value[0])
       now := int(time.Nanosecond * time.Duration(time.Now().UnixNano()) / time.Millisecond)
       var timeToWait = rateLimitReset - now
