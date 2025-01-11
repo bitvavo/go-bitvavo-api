@@ -630,6 +630,7 @@ func (bitvavo Bitvavo) sendPrivate(endpoint string, postfix string, body map[str
   resp, err := client.Do(req)
   if err != nil {
     errorToConsole("We caught an error " + err.Error())
+    return nil
   }
   defer resp.Body.Close()
   respBody, err := ioutil.ReadAll(resp.Body)
