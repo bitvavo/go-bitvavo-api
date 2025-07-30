@@ -1,0 +1,22 @@
+# Cortex Entity Descriptor
+openapi: 3.0.1
+info:
+  title: Go Bitvavo Api
+  x-cortex-tag: go-bitvavo-api
+  x-cortex-type: service
+  description: Go wrapper for Bitvavo API
+  x-cortex-owners:
+  - name: ordering-team
+    type: GROUP
+    provider: CORTEX
+  x-cortex-groups:
+  - service-tier:tier-2
+  - process:public-api-client-library
+  - data-confidentiality:c4
+  - data-integrity:i4
+  - data-availability:a4
+  - performance-tier:cold
+  x-cortex-git:
+    github:
+      alias: cortex
+      repository: bitvavo/go-bitvavo-api
