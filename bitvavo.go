@@ -130,7 +130,7 @@ type Ticker24h struct {
 
 type TickerPriceResponse struct {
 	Action   string        `json:"action"`
-	Response []TickerPrice `json:"response"`
+	Response TickerPrice `json:"response"`
 }
 
 type TickerPrice struct {
@@ -502,7 +502,7 @@ type Websocket struct {
 	publicTradesChannel      chan []PublicTrades
 	candlesChannel           chan []Candle
 	ticker24hChannel         chan []Ticker24h
-	tickerPriceChannel       chan []TickerPrice
+	tickerPriceChannel       chan TickerPrice
 	tickerBookChannel        chan []TickerBook
 	placeOrderChannel        chan Order
 	getOrderChannel          chan Order
@@ -1565,8 +1565,8 @@ func (ws *Websocket) Ticker24h(options map[string]string) chan []Ticker24h {
 }
 
 // options: market
-func (ws *Websocket) TickerPrice(options map[string]string) chan []TickerPrice {
-	ws.tickerPriceChannel = make(chan []TickerPrice, 100)
+func (ws *Websocket) TickerPrice(options map[string]string) chan TickerPrice {
+	ws.tickerPriceChannel = make(chan TickerPrice, 100)
 	options["action"] = "getTickerPrice"
 	myMessage, _ := json.Marshal(options)
 	ws.conn.WriteMessage(websocket.TextMessage, []byte(myMessage))
